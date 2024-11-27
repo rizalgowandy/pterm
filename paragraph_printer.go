@@ -2,6 +2,7 @@ package pterm
 
 import (
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -15,6 +16,7 @@ var DefaultParagraph = ParagraphPrinter{
 // It's like in a book.
 type ParagraphPrinter struct {
 	MaxWidth int
+	Writer   io.Writer
 }
 
 // WithMaxWidth returns a new ParagraphPrinter with a specific MaxWidth
@@ -23,9 +25,15 @@ func (p ParagraphPrinter) WithMaxWidth(width int) *ParagraphPrinter {
 	return &p
 }
 
+// WithWriter sets the custom Writer.
+func (p ParagraphPrinter) WithWriter(writer io.Writer) *ParagraphPrinter {
+	p.Writer = writer
+	return &p
+}
+
 // Sprint formats using the default formats for its operands and returns the resulting string.
 // Spaces are added between operands when neither is a string.
-func (p ParagraphPrinter) Sprint(a ...interface{}) string {
+func (p ParagraphPrinter) Sprint(a ...any) string {
 	if RawOutput {
 		return Sprint(a...)
 	}
@@ -51,26 +59,26 @@ func (p ParagraphPrinter) Sprint(a ...interface{}) string {
 
 // Sprintln formats using the default formats for its operands and returns the resulting string.
 // Spaces are always added between operands and a newline is appended.
-func (p ParagraphPrinter) Sprintln(a ...interface{}) string {
+func (p ParagraphPrinter) Sprintln(a ...any) string {
 	return p.Sprint(Sprintln(a...)) + "\n"
 }
 
 // Sprintf formats according to a format specifier and returns the resulting string.
-func (p ParagraphPrinter) Sprintf(format string, a ...interface{}) string {
+func (p ParagraphPrinter) Sprintf(format string, a ...any) string {
 	return p.Sprint(Sprintf(format, a...))
 }
 
 // Sprintfln formats according to a format specifier and returns the resulting string.
 // Spaces are always added between operands and a newline is appended.
-func (p ParagraphPrinter) Sprintfln(format string, a ...interface{}) string {
+func (p ParagraphPrinter) Sprintfln(format string, a ...any) string {
 	return p.Sprintf(format, a...) + "\n"
 }
 
 // Print formats using the default formats for its operands and writes to standard output.
 // Spaces are added between operands when neither is a string.
 // It returns the number of bytes written and any write error encountered.
-func (p *ParagraphPrinter) Print(a ...interface{}) *TextPrinter {
-	Print(p.Sprint(a...))
+func (p *ParagraphPrinter) Print(a ...any) *TextPrinter {
+	Fprint(p.Writer, p.Sprint(a...))
 	tp := TextPrinter(p)
 	return &tp
 }
@@ -78,16 +86,16 @@ func (p *ParagraphPrinter) Print(a ...interface{}) *TextPrinter {
 // Println formats using the default formats for its operands and writes to standard output.
 // Spaces are always added between operands and a newline is appended.
 // It returns the number of bytes written and any write error encountered.
-func (p *ParagraphPrinter) Println(a ...interface{}) *TextPrinter {
-	Print(p.Sprintln(a...))
+func (p *ParagraphPrinter) Println(a ...any) *TextPrinter {
+	Fprint(p.Writer, p.Sprintln(a...))
 	tp := TextPrinter(p)
 	return &tp
 }
 
 // Printf formats according to a format specifier and writes to standard output.
 // It returns the number of bytes written and any write error encountered.
-func (p *ParagraphPrinter) Printf(format string, a ...interface{}) *TextPrinter {
-	Print(p.Sprintf(format, a...))
+func (p *ParagraphPrinter) Printf(format string, a ...any) *TextPrinter {
+	Fprint(p.Writer, p.Sprintf(format, a...))
 	tp := TextPrinter(p)
 	return &tp
 }
@@ -95,8 +103,8 @@ func (p *ParagraphPrinter) Printf(format string, a ...interface{}) *TextPrinter 
 // Printfln formats according to a format specifier and writes to standard output.
 // Spaces are always added between operands and a newline is appended.
 // It returns the number of bytes written and any write error encountered.
-func (p *ParagraphPrinter) Printfln(format string, a ...interface{}) *TextPrinter {
-	Print(p.Sprintfln(format, a...))
+func (p *ParagraphPrinter) Printfln(format string, a ...any) *TextPrinter {
+	Fprint(p.Writer, p.Sprintfln(format, a...))
 	tp := TextPrinter(p)
 	return &tp
 }
@@ -104,7 +112,7 @@ func (p *ParagraphPrinter) Printfln(format string, a ...interface{}) *TextPrinte
 // PrintOnError prints every error which is not nil.
 // If every error is nil, nothing will be printed.
 // This can be used for simple error checking.
-func (p *ParagraphPrinter) PrintOnError(a ...interface{}) *TextPrinter {
+func (p *ParagraphPrinter) PrintOnError(a ...any) *TextPrinter {
 	for _, arg := range a {
 		if err, ok := arg.(error); ok {
 			if err != nil {
@@ -120,7 +128,7 @@ func (p *ParagraphPrinter) PrintOnError(a ...interface{}) *TextPrinter {
 // PrintOnErrorf wraps every error which is not nil and prints it.
 // If every error is nil, nothing will be printed.
 // This can be used for simple error checking.
-func (p *ParagraphPrinter) PrintOnErrorf(format string, a ...interface{}) *TextPrinter {
+func (p *ParagraphPrinter) PrintOnErrorf(format string, a ...any) *TextPrinter {
 	for _, arg := range a {
 		if err, ok := arg.(error); ok {
 			if err != nil {

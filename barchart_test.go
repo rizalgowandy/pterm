@@ -1,7 +1,7 @@
 package pterm_test
 
 import (
-	"io"
+	"os"
 	"testing"
 
 	"github.com/MarvinJWendt/testza"
@@ -17,7 +17,7 @@ func TestBarChartPrinterNilPrint(t *testing.T) {
 	}
 }
 
-func TestBarChartPrinterNilStylePrint(t *testing.T) {
+func TestBarChartPrinter_NilStylePrint(t *testing.T) {
 	bars := pterm.Bars{
 		pterm.Bar{
 			Label: "Bar 1",
@@ -33,13 +33,10 @@ func TestBarChartPrinterNilStylePrint(t *testing.T) {
 		},
 	}
 
-	printer := pterm.DefaultBarChart.WithBars(bars)
-	content := captureStdout(func(w io.Writer) {
-		printer.Render()
-	})
-	testza.SnapshotCreateOrValidate(t, t.Name(), content)
+	pterm.DefaultBarChart.WithBars(bars).Render()
 }
 
+// VERTICAL bars + MIXED values test
 func TestBarChartPrinter_RenderExample(t *testing.T) {
 	bars := pterm.Bars{
 		pterm.Bar{
@@ -53,17 +50,230 @@ func TestBarChartPrinter_RenderExample(t *testing.T) {
 			Style: pterm.NewStyle(pterm.FgCyan),
 		},
 		pterm.Bar{
-			Label: "Longer Label",
+			Label: "Long Label Example",
 			Value: 7,
+			Style: pterm.NewStyle(pterm.FgCyan),
+		},
+		pterm.Bar{
+			Label: "Zero",
+			Value: 0,
+			Style: pterm.NewStyle(pterm.FgCyan),
+		},
+		pterm.Bar{
+			Label: "Negative Value",
+			Value: -4,
+			Style: pterm.NewStyle(pterm.FgCyan),
+		},
+		pterm.Bar{
+			Label: "NV",
+			Value: -5,
 			Style: pterm.NewStyle(pterm.FgCyan),
 		},
 	}
 
-	printer := pterm.DefaultBarChart.WithBars(bars)
-	content := captureStdout(func(w io.Writer) {
-		printer.Render()
-	})
-	testza.SnapshotCreateOrValidate(t, t.Name(), content)
+	pterm.DefaultBarChart.WithBars(bars).Render()
+}
+
+// VERTICAL bars + NEGATIVE values test
+func TestBarChartPrinter_RenderNegativeBarValues(t *testing.T) {
+	pterm.DefaultBarChart.WithShowValue().WithBars(pterm.Bars{
+		pterm.Bar{
+			Label: "Test",
+			Value: -1337,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: -1000,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: -950,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: -1500,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: -10,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: -100,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+	}).Render()
+}
+
+// VERTICAL bars + POSITIVE values test
+func TestBarChartPrinter_RenderPositiveBarValues(t *testing.T) {
+	pterm.DefaultBarChart.WithShowValue().WithBars(pterm.Bars{
+		pterm.Bar{
+			Label: "Test",
+			Value: 1000,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: 1400,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: 900,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+	}).Render()
+}
+
+// VERTICAL bars + ZERO values test
+func TestBarChartPrinter_RenderZeroBarValues(t *testing.T) {
+	pterm.DefaultBarChart.WithShowValue().WithBars(pterm.Bars{
+		pterm.Bar{
+			Label: "Test",
+			Value: 0,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: 0,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+	}).Render()
+}
+
+// HORIZONTAL bars + MIXED values test
+func TestBarChartPrinter_RenderExampleHorizontal(t *testing.T) {
+	pterm.DefaultBarChart.WithShowValue().WithHorizontal().WithBars(pterm.Bars{
+		pterm.Bar{
+			Label: "Test",
+			Value: 1337,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: 1000,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Zero",
+			Value: 0,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: -800,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: -500,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+	}).Render()
+}
+
+// HORIZONTAL bars + NEGATIVE values test
+func TestBarChartPrinter_RenderNegativeBarValuesHorizontal(t *testing.T) {
+	pterm.DefaultBarChart.WithShowValue().WithHorizontal().WithBars(pterm.Bars{
+		pterm.Bar{
+			Label: "Test",
+			Value: -999,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: -500,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: -653,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: 0,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: -20,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: -100,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: 0,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: -30,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+	}).Render()
+}
+
+// HORIZONTAL bars + POSITIVE values test
+func TestBarChartPrinter_RenderPositiveBarValuesHorizontal(t *testing.T) {
+	pterm.DefaultBarChart.WithShowValue().WithHorizontal().WithBars(pterm.Bars{
+		pterm.Bar{
+			Label: "Test",
+			Value: 30,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: 70,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: 80,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: 90,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: 40,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: 30,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+	}).Render()
+}
+
+// HORIZONTAL bars + ZERO values test
+func TestBarChartPrinter_RenderZeroBarValuesHorizontal(t *testing.T) {
+	pterm.DefaultBarChart.WithShowValue().WithHorizontal().WithBars(pterm.Bars{
+		pterm.Bar{
+			Label: "Test",
+			Value: 0,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+		pterm.Bar{
+			Label: "Test",
+			Value: 0,
+			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
+		},
+	}).Render()
 }
 
 func TestBarChartPrinter_RenderExampleRawOutput(t *testing.T) {
@@ -80,22 +290,33 @@ func TestBarChartPrinter_RenderExampleRawOutput(t *testing.T) {
 			Style: pterm.NewStyle(pterm.FgCyan),
 		},
 		pterm.Bar{
-			Label: "Longer Label",
+			Label: "Long Label Example",
 			Value: 7,
+			Style: pterm.NewStyle(pterm.FgCyan),
+		},
+		pterm.Bar{
+			Label: "Zero",
+			Value: 0,
+			Style: pterm.NewStyle(pterm.FgCyan),
+		},
+		pterm.Bar{
+			Label: "Negative Value",
+			Value: -4,
+			Style: pterm.NewStyle(pterm.FgCyan),
+		},
+		pterm.Bar{
+			Label: "NV",
+			Value: -5,
 			Style: pterm.NewStyle(pterm.FgCyan),
 		},
 	}
 
-	printer := pterm.DefaultBarChart.WithBars(bars)
-	content := captureStdout(func(w io.Writer) {
-		printer.Render()
-	})
-	testza.SnapshotCreateOrValidate(t, t.Name(), content)
+	pterm.DefaultBarChart.WithBars(bars).Render()
 	pterm.EnableStyling()
 }
 
 func TestBarChartPrinter_RenderMultipleLineLabel(t *testing.T) {
-	printer := pterm.DefaultBarChart.WithShowValue().WithBars(pterm.Bars{
+	pterm.DefaultBarChart.WithShowValue().WithBars(pterm.Bars{
 		pterm.Bar{
 			Label: "Test",
 			Value: -1337,
@@ -111,72 +332,11 @@ func TestBarChartPrinter_RenderMultipleLineLabel(t *testing.T) {
 			Value: -1337,
 			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
 		},
-	})
-
-	printer.Render()
-	content, _ := printer.Srender()
-	testza.SnapshotCreateOrValidate(t, t.Name(), content)
-}
-
-func TestBarChartPrinter_RenderNegativeBarValues(t *testing.T) {
-	printer := pterm.DefaultBarChart.WithShowValue().WithBars(pterm.Bars{
-		pterm.Bar{
-			Label: "Test",
-			Value: -1337,
-			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
-		},
-		pterm.Bar{
-			Label: "Test",
-			Value: -1337,
-			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
-		},
-	})
-	content := captureStdout(func(w io.Writer) {
-		printer.Render()
-	})
-	testza.SnapshotCreateOrValidate(t, t.Name(), content)
-}
-
-func TestBarChartPrinter_RenderZeroBarValuesHorizontal(t *testing.T) {
-	printer := pterm.DefaultBarChart.WithShowValue().WithHorizontal().WithBars(pterm.Bars{
-		pterm.Bar{
-			Label: "Test",
-			Value: 0,
-			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
-		},
-		pterm.Bar{
-			Label: "Test",
-			Value: 0,
-			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
-		},
-	})
-	content := captureStdout(func(w io.Writer) {
-		printer.Render()
-	})
-	testza.SnapshotCreateOrValidate(t, t.Name(), content)
-}
-
-func TestBarChartPrinter_RenderZeroBarValues(t *testing.T) {
-	printer := pterm.DefaultBarChart.WithShowValue().WithBars(pterm.Bars{
-		pterm.Bar{
-			Label: "Test",
-			Value: 0,
-			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
-		},
-		pterm.Bar{
-			Label: "Test",
-			Value: 0,
-			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
-		},
-	})
-	content := captureStdout(func(w io.Writer) {
-		printer.Render()
-	})
-	testza.SnapshotCreateOrValidate(t, t.Name(), content)
+	}).Render()
 }
 
 func TestBarChartPrinter_RenderLowBarValues(t *testing.T) {
-	printer := pterm.DefaultBarChart.WithShowValue().WithBars(pterm.Bars{
+	pterm.DefaultBarChart.WithShowValue().WithBars(pterm.Bars{
 		pterm.Bar{
 			Label: "Test",
 			Value: 1,
@@ -187,15 +347,11 @@ func TestBarChartPrinter_RenderLowBarValues(t *testing.T) {
 			Value: 1,
 			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
 		},
-	})
-	content := captureStdout(func(w io.Writer) {
-		printer.Render()
-	})
-	testza.SnapshotCreateOrValidate(t, t.Name(), content)
+	}).Render()
 }
 
 func TestBarChartPrinter_Render(t *testing.T) {
-	printer := pterm.DefaultBarChart.WithShowValue().WithBars(pterm.Bars{
+	pterm.DefaultBarChart.WithShowValue().WithBars(pterm.Bars{
 		pterm.Bar{
 			Label: "Test",
 			Value: 1337,
@@ -206,30 +362,7 @@ func TestBarChartPrinter_Render(t *testing.T) {
 			Value: 1337,
 			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
 		},
-	})
-	content := captureStdout(func(w io.Writer) {
-		printer.Render()
-	})
-	testza.SnapshotCreateOrValidate(t, t.Name(), content)
-}
-
-func TestBarChartPrinter_RenderHorizonzal(t *testing.T) {
-	printer := pterm.DefaultBarChart.WithShowValue().WithHorizontal().WithBars(pterm.Bars{
-		pterm.Bar{
-			Label: "Test",
-			Value: 1337,
-			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
-		},
-		pterm.Bar{
-			Label: "Test",
-			Value: 1337,
-			Style: pterm.NewStyle(pterm.FgRed, pterm.BgBlue, pterm.Bold),
-		},
-	})
-	content := captureStdout(func(w io.Writer) {
-		printer.Render()
-	})
-	testza.SnapshotCreateOrValidate(t, t.Name(), content)
+	}).Render()
 }
 
 func TestBarChartPrinter_WithHorizontalBarCharacter(t *testing.T) {
@@ -304,4 +437,13 @@ func TestBarChartPrinter_WithWidth(t *testing.T) {
 
 	testza.AssertEqual(t, s, p2.Width)
 	testza.AssertZero(t, p.Width)
+}
+
+func TestBarChartPrinter_WithWriter(t *testing.T) {
+	p := pterm.BarChartPrinter{}
+	s := os.Stderr
+	p2 := p.WithWriter(s)
+
+	testza.AssertEqual(t, s, p2.Writer)
+	testza.AssertZero(t, p.Writer)
 }

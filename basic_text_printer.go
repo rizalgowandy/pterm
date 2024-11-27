@@ -1,6 +1,9 @@
 package pterm
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+)
 
 var (
 	// DefaultBasicText returns a default BasicTextPrinter, which can be used to print text as is.
@@ -10,7 +13,8 @@ var (
 
 // BasicTextPrinter is the printer used to print the input as-is or as specified by user formatting.
 type BasicTextPrinter struct {
-	Style *Style
+	Style  *Style
+	Writer io.Writer
 }
 
 // WithStyle adds a style to the printer.
@@ -19,9 +23,14 @@ func (p BasicTextPrinter) WithStyle(style *Style) *BasicTextPrinter {
 	return &p
 }
 
+func (p BasicTextPrinter) WithWriter(writer io.Writer) *BasicTextPrinter {
+	p.Writer = writer
+	return &p
+}
+
 // Sprint formats using the default formats for its operands and returns the resulting string.
 // Spaces are added between operands when neither is a string.
-func (p BasicTextPrinter) Sprint(a ...interface{}) string {
+func (p BasicTextPrinter) Sprint(a ...any) string {
 	if p.Style == nil {
 		p.Style = NewStyle()
 	}
@@ -30,53 +39,53 @@ func (p BasicTextPrinter) Sprint(a ...interface{}) string {
 
 // Sprintln formats using the default formats for its operands and returns the resulting string.
 // Spaces are always added between operands and a newline is appended.
-func (p BasicTextPrinter) Sprintln(a ...interface{}) string {
+func (p BasicTextPrinter) Sprintln(a ...any) string {
 	str := fmt.Sprintln(a...)
 	return Sprintln(p.Sprint(str))
 }
 
 // Sprintf formats according to a format specifier and returns the resulting string.
-func (p BasicTextPrinter) Sprintf(format string, a ...interface{}) string {
+func (p BasicTextPrinter) Sprintf(format string, a ...any) string {
 	return p.Sprint(Sprintf(format, a...))
 }
 
 // Sprintfln formats according to a format specifier and returns the resulting string.
 // Spaces are always added between operands and a newline is appended.
-func (p BasicTextPrinter) Sprintfln(format string, a ...interface{}) string {
+func (p BasicTextPrinter) Sprintfln(format string, a ...any) string {
 	return p.Sprintf(format, a...) + "\n"
 }
 
-// Print formats using the default formats for its operands and writes to standard output.
+// Print formats using the default formats for its operands and writes to provided writer.
 // Spaces are added between operands when neither is a string.
 // It returns the number of bytes written and any write error encountered.
-func (p *BasicTextPrinter) Print(a ...interface{}) *TextPrinter {
-	Print(p.Sprint(a...))
+func (p *BasicTextPrinter) Print(a ...any) *TextPrinter {
+	Fprint(p.Writer, p.Sprint(a...))
 	tp := TextPrinter(p)
 	return &tp
 }
 
-// Println formats using the default formats for its operands and writes to standard output.
+// Println formats using the default formats for its operands and writes to provided writer.
 // Spaces are always added between operands and a newline is appended.
 // It returns the number of bytes written and any write error encountered.
-func (p *BasicTextPrinter) Println(a ...interface{}) *TextPrinter {
-	Print(p.Sprintln(a...))
+func (p *BasicTextPrinter) Println(a ...any) *TextPrinter {
+	Fprint(p.Writer, p.Sprintln(a...))
 	tp := TextPrinter(p)
 	return &tp
 }
 
-// Printf formats according to a format specifier and writes to standard output.
+// Printf formats according to a format specifier and writes to provided writer.
 // It returns the number of bytes written and any write error encountered.
-func (p *BasicTextPrinter) Printf(format string, a ...interface{}) *TextPrinter {
-	Print(p.Sprintf(format, a...))
+func (p *BasicTextPrinter) Printf(format string, a ...any) *TextPrinter {
+	Fprint(p.Writer, p.Sprintf(format, a...))
 	tp := TextPrinter(p)
 	return &tp
 }
 
-// Printfln formats according to a format specifier and writes to standard output.
+// Printfln formats according to a format specifier and writes to provided writer.
 // Spaces are always added between operands and a newline is appended.
 // It returns the number of bytes written and any write error encountered.
-func (p *BasicTextPrinter) Printfln(format string, a ...interface{}) *TextPrinter {
-	Print(p.Sprintfln(format, a...))
+func (p *BasicTextPrinter) Printfln(format string, a ...any) *TextPrinter {
+	Fprint(p.Writer, p.Sprintfln(format, a...))
 	tp := TextPrinter(p)
 	return &tp
 }
@@ -84,7 +93,7 @@ func (p *BasicTextPrinter) Printfln(format string, a ...interface{}) *TextPrinte
 // PrintOnError prints every error which is not nil.
 // If every error is nil, nothing will be printed.
 // This can be used for simple error checking.
-func (p *BasicTextPrinter) PrintOnError(a ...interface{}) *TextPrinter {
+func (p *BasicTextPrinter) PrintOnError(a ...any) *TextPrinter {
 	for _, arg := range a {
 		if err, ok := arg.(error); ok {
 			if err != nil {
@@ -100,7 +109,7 @@ func (p *BasicTextPrinter) PrintOnError(a ...interface{}) *TextPrinter {
 // PrintOnErrorf wraps every error which is not nil and prints it.
 // If every error is nil, nothing will be printed.
 // This can be used for simple error checking.
-func (p *BasicTextPrinter) PrintOnErrorf(format string, a ...interface{}) *TextPrinter {
+func (p *BasicTextPrinter) PrintOnErrorf(format string, a ...any) *TextPrinter {
 	for _, arg := range a {
 		if err, ok := arg.(error); ok {
 			if err != nil {

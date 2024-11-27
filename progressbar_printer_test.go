@@ -1,6 +1,8 @@
 package pterm_test
 
 import (
+	"io"
+	"os"
 	"testing"
 	"time"
 
@@ -14,6 +16,18 @@ func TestProgressbarPrinter_Add(t *testing.T) {
 	p.Add(1337)
 	testza.AssertEqual(t, 1337, p.Current)
 	p.Stop()
+}
+
+func TestProgressbarPrinter_Add_With(t *testing.T) {
+	proxyToDevNull()
+	w := pterm.GetTerminalWidth()
+	h := pterm.GetTerminalHeight()
+	pterm.SetForcedTerminalSize(1, 1)
+	p := pterm.DefaultProgressbar.WithTotal(2000)
+	p.Add(1337)
+	testza.AssertEqual(t, 1337, p.Current)
+	p.Stop()
+	pterm.SetForcedTerminalSize(w, h)
 }
 
 func TestProgressbarPrinter_AddWithNoStyle(t *testing.T) {
@@ -50,6 +64,13 @@ func TestProgressbarPrinter_RemoveWhenDone(t *testing.T) {
 	p.Add(1)
 	testza.AssertEqual(t, 1, p.Current)
 	testza.AssertFalse(t, p.IsActive)
+}
+
+func TestProgressbarPrinter_StartWithTitle(t *testing.T) {
+	p := pterm.DefaultProgressbar
+	p2, _ := p.Start("Title")
+	testza.AssertEqual(t, "Title", p2.Title)
+	p.Stop()
 }
 
 func TestProgressbarPrinter_GenericStart(t *testing.T) {
@@ -176,10 +197,64 @@ func TestProgressbarPrinter_WithTotal(t *testing.T) {
 	testza.AssertEqual(t, 1337, p2.Total)
 }
 
+func TestProgressbarPrinter_WithMaxWidth(t *testing.T) {
+	p := pterm.ProgressbarPrinter{}
+	p2 := p.WithMaxWidth(1337)
+
+	testza.AssertEqual(t, 1337, p2.MaxWidth)
+}
+
+func TestProgressbarPrinter_WithBarFiller(t *testing.T) {
+	p := pterm.ProgressbarPrinter{}
+	p2 := p.WithBarFiller("-")
+
+	testza.AssertEqual(t, "-", p2.BarFiller)
+}
+
 func TestProgressbarPrinter_UpdateTitle(t *testing.T) {
 	p := pterm.ProgressbarPrinter{}
 	p2 := p.WithTitle("test")
 	p2.UpdateTitle("test2")
 
 	testza.AssertEqual(t, "test2", p2.Title)
+}
+
+func TestProgressbarPrinter_WithWriter(t *testing.T) {
+	p := pterm.ProgressbarPrinter{}
+	s := os.Stderr
+	p2 := p.WithWriter(s)
+
+	testza.AssertEqual(t, s, p2.Writer)
+	testza.AssertZero(t, p.Writer)
+}
+
+func TestProgressbarPrinter_OutputToWriters(t *testing.T) {
+	testCases := map[string]struct {
+		action                func(*pterm.ProgressbarPrinter)
+		expectOutputToContain string
+	}{
+		"ExpectUpdatedTitleToBeWrittenToStderr": {
+			action: func(pb *pterm.ProgressbarPrinter) {
+				pb.UpdateTitle("Updated text")
+			},
+			expectOutputToContain: "Updated text",
+		},
+	}
+
+	for testTitle, testCase := range testCases {
+		t.Run(testTitle, func(t *testing.T) {
+			stderr, err := testza.CaptureStderr(func(w io.Writer) error {
+				pb, err := pterm.DefaultProgressbar.WithTitle("Hello world").WithWriter(os.Stderr).Start()
+				time.Sleep(time.Second) // Required otherwise the goroutine doesn't run and the text isnt outputted
+				testza.AssertNoError(t, err)
+				testCase.action(pb)
+				time.Sleep(time.Second) // Required otherwise the goroutine doesn't run and the text isnt updated
+				return nil
+			})
+
+			testza.AssertNoError(t, err)
+			testza.AssertContains(t, stderr, "Hello world")
+			testza.AssertContains(t, stderr, testCase.expectOutputToContain)
+		})
+	}
 }

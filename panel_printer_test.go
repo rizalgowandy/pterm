@@ -2,6 +2,7 @@ package pterm_test
 
 import (
 	"io"
+	"os"
 	"testing"
 
 	"github.com/MarvinJWendt/testza"
@@ -26,7 +27,7 @@ func TestPanelPrinterNilPrintWithPanels(t *testing.T) {
 }
 
 func TestPanelPrinter_Render(t *testing.T) {
-	testPrintContains(t, func(w io.Writer, a interface{}) {
+	testPrintContains(t, func(w io.Writer, a any) {
 		panels := pterm.Panels{
 			{{Data: pterm.Sprint(a)}},
 		}
@@ -37,7 +38,7 @@ func TestPanelPrinter_Render(t *testing.T) {
 }
 
 func TestPanelPrinter_RenderMultiplePanels(t *testing.T) {
-	testPrintContains(t, func(w io.Writer, a interface{}) {
+	testPrintContains(t, func(w io.Writer, a any) {
 		panels := pterm.Panels{
 			{{Data: pterm.Sprint("a\nbc\ndef")}, {Data: pterm.Sprint("abcd")}},
 			{{Data: pterm.Sprint(a)}},
@@ -49,7 +50,7 @@ func TestPanelPrinter_RenderMultiplePanels(t *testing.T) {
 }
 
 func TestPanelPrinter_RenderMultiplePanelsWithBorder(t *testing.T) {
-	testPrintContains(t, func(w io.Writer, a interface{}) {
+	testPrintContains(t, func(w io.Writer, a any) {
 		panels := pterm.Panels{
 			{{Data: pterm.Sprint("a\nbc\ndef")}, {Data: pterm.Sprint("abcd")}},
 			{{Data: pterm.Sprint(a)}},
@@ -61,7 +62,7 @@ func TestPanelPrinter_RenderMultiplePanelsWithBorder(t *testing.T) {
 }
 
 func TestPanelPrinter_RenderWithSameColumnWidth(t *testing.T) {
-	testPrintContains(t, func(w io.Writer, a interface{}) {
+	testPrintContains(t, func(w io.Writer, a any) {
 		panels := pterm.Panels{
 			{{Data: pterm.Sprint(a)}},
 			{{Data: pterm.Sprint("test")}},
@@ -74,7 +75,7 @@ func TestPanelPrinter_RenderWithSameColumnWidth(t *testing.T) {
 }
 
 func TestPanelPrinter_RenderWithBottomPadding(t *testing.T) {
-	testPrintContains(t, func(w io.Writer, a interface{}) {
+	testPrintContains(t, func(w io.Writer, a any) {
 		panels := pterm.Panels{
 			{{Data: pterm.Sprint(a)}},
 			{{Data: pterm.Sprint("test")}},
@@ -149,4 +150,13 @@ func TestPanelPrinter_WithBoxPrinter(t *testing.T) {
 
 	testza.AssertEqual(t, pterm.DefaultBox, p2.BoxPrinter)
 	testza.AssertZero(t, p.BoxPrinter)
+}
+
+func TestPanelPrinter_WithWriter(t *testing.T) {
+	p := pterm.PanelPrinter{}
+	s := os.Stderr
+	p2 := p.WithWriter(s)
+
+	testza.AssertEqual(t, s, p2.Writer)
+	testza.AssertZero(t, p.Writer)
 }

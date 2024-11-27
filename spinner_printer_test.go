@@ -2,6 +2,7 @@ package pterm_test
 
 import (
 	"io"
+	"os"
 	"testing"
 	"time"
 
@@ -11,15 +12,15 @@ import (
 
 func TestSpinnerPrinter_NilPrint(t *testing.T) {
 	p := pterm.SpinnerPrinter{}
+	p.Info()
 	p.Success()
 	p.Warning()
 	p.Fail()
 }
 
 func TestSpinnerPrinter_Fail(t *testing.T) {
-	p := pterm.DefaultSpinner
-	testPrintContains(t, func(w io.Writer, a interface{}) {
-		p.Fail(a)
+	testPrintContains(t, func(w io.Writer, a any) {
+		pterm.DefaultSpinner.WithWriter(w).Fail(a)
 	})
 }
 
@@ -42,10 +43,15 @@ func TestSpinnerPrinter_GenericStop(t *testing.T) {
 	p.GenericStop()
 }
 
+func TestSpinnerPrinter_Info(t *testing.T) {
+	testPrintContains(t, func(w io.Writer, a any) {
+		pterm.DefaultSpinner.WithWriter(w).Info(a)
+	})
+}
+
 func TestSpinnerPrinter_Success(t *testing.T) {
-	p := pterm.DefaultSpinner
-	testPrintContains(t, func(w io.Writer, a interface{}) {
-		p.Success(a)
+	testPrintContains(t, func(w io.Writer, a any) {
+		pterm.DefaultSpinner.WithWriter(w).Success(a)
 	})
 }
 
@@ -59,9 +65,9 @@ func TestSpinnerPrinter_UpdateText(t *testing.T) {
 	})
 
 	t.Run("Override", func(t *testing.T) {
-		out := captureStdout(func(io.Writer) {
+		out := captureStdout(func(w io.Writer) {
 			// Set a really long delay to make sure text doesn't get updated before function returns.
-			p := pterm.DefaultSpinner.WithDelay(1 * time.Hour)
+			p := pterm.DefaultSpinner.WithDelay(1 * time.Hour).WithWriter(w)
 			p.Start("An initial long message")
 			p.UpdateText("A short message")
 		})
@@ -81,9 +87,8 @@ func TestSpinnerPrinter_UpdateTextRawOutput(t *testing.T) {
 }
 
 func TestSpinnerPrinter_Warning(t *testing.T) {
-	p := pterm.DefaultSpinner
-	testPrintContains(t, func(w io.Writer, a interface{}) {
-		p.Warning(a)
+	testPrintContains(t, func(w io.Writer, a any) {
+		pterm.DefaultSpinner.WithWriter(w).Warning(a)
 	})
 }
 
@@ -171,6 +176,7 @@ func TestSpinnerPrinter_DifferentVariations(t *testing.T) {
 		Style          *pterm.Style
 		Delay          time.Duration
 		MessageStyle   *pterm.Style
+		InfoPrinter    pterm.TextPrinter
 		SuccessPrinter pterm.TextPrinter
 		FailPrinter    pterm.TextPrinter
 		WarningPrinter pterm.TextPrinter
@@ -178,7 +184,7 @@ func TestSpinnerPrinter_DifferentVariations(t *testing.T) {
 		IsActive       bool
 	}
 	type args struct {
-		text []interface{}
+		text []any
 	}
 	tests := []struct {
 		name   string
@@ -186,7 +192,7 @@ func TestSpinnerPrinter_DifferentVariations(t *testing.T) {
 		args   args
 	}{
 		{name: "WithText", fields: fields{Text: "test"}, args: args{}},
-		{name: "WithText", fields: fields{}, args: args{[]interface{}{"test"}}},
+		{name: "WithText", fields: fields{}, args: args{[]any{"test"}}},
 		{name: "WithRemoveWhenDone", fields: fields{RemoveWhenDone: true}, args: args{}},
 	}
 	for _, tt := range tests {
@@ -197,6 +203,7 @@ func TestSpinnerPrinter_DifferentVariations(t *testing.T) {
 				Style:          tt.fields.Style,
 				Delay:          tt.fields.Delay,
 				MessageStyle:   tt.fields.MessageStyle,
+				InfoPrinter:    tt.fields.InfoPrinter,
 				SuccessPrinter: tt.fields.SuccessPrinter,
 				FailPrinter:    tt.fields.FailPrinter,
 				WarningPrinter: tt.fields.WarningPrinter,
@@ -205,6 +212,54 @@ func TestSpinnerPrinter_DifferentVariations(t *testing.T) {
 			}
 			s.Start(tt.args.text)
 			s.Stop()
+		})
+	}
+}
+
+func TestSpinnerPrinter_WithWriter(t *testing.T) {
+	p := pterm.SpinnerPrinter{}
+	s := os.Stderr
+	p2 := p.WithWriter(s)
+
+	testza.AssertEqual(t, s, p2.Writer)
+	testza.AssertZero(t, p.Writer)
+}
+
+func TestSpinnerPrinter_OutputToWriters(t *testing.T) {
+	testCases := map[string]struct {
+		action                func(*pterm.SpinnerPrinter)
+		expectOutputToContain string
+	}{
+		"ExpectWarningMessageToBeWrittenToStderr": {
+			action:                func(sp *pterm.SpinnerPrinter) { sp.Warning("A warning") },
+			expectOutputToContain: "A warning",
+		},
+		"ExpectFailMessageToBeWrittenToStderr": {
+			action:                func(sp *pterm.SpinnerPrinter) { sp.Fail("An error") },
+			expectOutputToContain: "An error",
+		},
+		"ExpectUpdatedTextToBeWrittenToStderr": {
+			action: func(sp *pterm.SpinnerPrinter) {
+				sp.UpdateText("Updated text")
+			},
+			expectOutputToContain: "Updated text",
+		},
+	}
+
+	for testTitle, testCase := range testCases {
+		t.Run(testTitle, func(t *testing.T) {
+			stderr, err := testza.CaptureStderr(func(w io.Writer) error {
+				sp, err := pterm.DefaultSpinner.WithText("Hello world").WithWriter(os.Stderr).Start()
+				time.Sleep(time.Second) // Required otherwise the goroutine doesn't run and the text isnt outputted
+				testza.AssertNoError(t, err)
+				testCase.action(sp)
+				time.Sleep(time.Second) // Required otherwise the goroutine doesn't run and the text isnt updated
+				return nil
+			})
+
+			testza.AssertNoError(t, err)
+			testza.AssertContains(t, stderr, "Hello world")
+			testza.AssertContains(t, stderr, testCase.expectOutputToContain)
 		})
 	}
 }
